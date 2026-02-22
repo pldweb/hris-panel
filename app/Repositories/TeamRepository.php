@@ -198,7 +198,7 @@ class TeamRepository implements TeamRepositoryInterface
     public function getStatistics(): array
     {
         // Cache key for statistics
-        $cacheKey = CacheConstants::CACHE_KEY_TEAM_STATISTICS.now()->format('Y-m-d-H');
+        $cacheKey = CacheConstants::CACHE_KEY_TEAM_STATISTICS . now()->format('Y-m-d-H');
 
         // Cache for 1 hour
         return cache()->remember($cacheKey, CacheConstants::ONE_HOUR, function () {
@@ -256,7 +256,7 @@ class TeamRepository implements TeamRepositoryInterface
     public function getTeamStatistics(string $teamId): array
     {
         // Cache key for team-specific statistics
-        $cacheKey = CacheConstants::CACHE_KEY_TEAM_STATISTICS.$teamId.'_'.now()->format('Y-m-d-H');
+        $cacheKey = CacheConstants::CACHE_KEY_TEAM_STATISTICS . $teamId . '_' . now()->format('Y-m-d-H');
 
         // Cache for 1 hour
         return cache()->remember($cacheKey, CacheConstants::ONE_HOUR, function () use ($teamId) {
@@ -311,7 +311,7 @@ class TeamRepository implements TeamRepositoryInterface
     public function getTeamChartData(string $teamId): array
     {
         // Cache key for chart data
-        $cacheKey = CacheConstants::CACHE_KEY_TEAM_CHART_DATA.$teamId.'_'.now()->format('Y-m-d');
+        $cacheKey = CacheConstants::CACHE_KEY_TEAM_CHART_DATA . $teamId . '_' . now()->format('Y-m-d');
 
         // Cache for 24 hours
         return cache()->remember($cacheKey, CacheConstants::ONE_DAY, function () use ($teamId) {
@@ -388,6 +388,9 @@ class TeamRepository implements TeamRepositoryInterface
                 ]
             );
 
+            // Sync with job_information
+            \App\Models\JobInformation::where('employee_id', $employeeId)->update(['team_id' => $teamId]);
+
             // Clear caches
             $this->clearTeamCaches($teamId);
 
@@ -403,11 +406,14 @@ class TeamRepository implements TeamRepositoryInterface
                 ->whereNull('left_at')
                 ->first();
 
-            if (! $member) {
+            if (!$member) {
                 throw new \Exception('Employee is not a member of this team');
             }
 
             $member->update(['left_at' => now()]);
+
+            // Sync with job_information
+            \App\Models\JobInformation::where('employee_id', $employeeId)->update(['team_id' => null]);
 
             $this->clearTeamCaches($teamId);
 
@@ -421,15 +427,15 @@ class TeamRepository implements TeamRepositoryInterface
     private function clearTeamCaches(?string $teamId = null): void
     {
         // Clear general statistics cache
-        cache()->forget(CacheConstants::CACHE_KEY_TEAM_STATISTICS.now()->format('Y-m-d-H'));
-        cache()->forget(CacheConstants::CACHE_KEY_TEAM_STATISTICS.now()->subHour()->format('Y-m-d-H'));
+        cache()->forget(CacheConstants::CACHE_KEY_TEAM_STATISTICS . now()->format('Y-m-d-H'));
+        cache()->forget(CacheConstants::CACHE_KEY_TEAM_STATISTICS . now()->subHour()->format('Y-m-d-H'));
 
         // Clear team-specific caches if teamId is provided
         if ($teamId) {
-            cache()->forget(CacheConstants::CACHE_KEY_TEAM_STATISTICS.$teamId.'_'.now()->format('Y-m-d-H'));
-            cache()->forget(CacheConstants::CACHE_KEY_TEAM_STATISTICS.$teamId.'_'.now()->subHour()->format('Y-m-d-H'));
-            cache()->forget(CacheConstants::CACHE_KEY_TEAM_CHART_DATA.$teamId.'_'.now()->format('Y-m-d'));
-            cache()->forget(CacheConstants::CACHE_KEY_TEAM_CHART_DATA.$teamId.'_'.now()->subDay()->format('Y-m-d'));
+            cache()->forget(CacheConstants::CACHE_KEY_TEAM_STATISTICS . $teamId . '_' . now()->format('Y-m-d-H'));
+            cache()->forget(CacheConstants::CACHE_KEY_TEAM_STATISTICS . $teamId . '_' . now()->subHour()->format('Y-m-d-H'));
+            cache()->forget(CacheConstants::CACHE_KEY_TEAM_CHART_DATA . $teamId . '_' . now()->format('Y-m-d'));
+            cache()->forget(CacheConstants::CACHE_KEY_TEAM_CHART_DATA . $teamId . '_' . now()->subDay()->format('Y-m-d'));
         }
     }
 }

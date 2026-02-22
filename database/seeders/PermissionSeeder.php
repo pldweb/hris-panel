@@ -18,6 +18,14 @@ class PermissionSeeder extends Seeder
             'view',
         ],
 
+        'role' => [
+            'menu',
+            'list',
+            'create',
+            'edit',
+            'delete',
+        ],
+
         'team' => [
             'menu',
             'list',
@@ -89,7 +97,7 @@ class PermissionSeeder extends Seeder
         foreach ($this->permissions as $key => $value) {
             foreach ($value as $permission) {
                 Permission::firstOrCreate([
-                    'name' => $key.'-'.$permission,
+                    'name' => $key . '-' . $permission,
                     'guard_name' => 'sanctum',
                 ]);
             }

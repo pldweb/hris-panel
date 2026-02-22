@@ -20,7 +20,7 @@ class AttendanceSeeder extends Seeder
     {
         DB::connection()->disableQueryLog();
 
-        $employeeLimit = 1000;
+        $employeeLimit = 100;
 
         $this->command->info("Starting attendance seeding for {$employeeLimit} employees (current month)...");
         $this->command->newLine();

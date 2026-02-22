@@ -4,14 +4,14 @@ namespace App\Enums;
 
 enum Gender: string
 {
-    case MALE = 'male';
-    case FEMALE = 'female';
+    case MALE = 'Laki-laki';
+    case FEMALE = 'Perempuan';
 
     public function label(): string
     {
         return match ($this) {
-            self::MALE => 'Male',
-            self::FEMALE => 'Female',
+            self::MALE => 'Laki-laki',
+            self::FEMALE => 'Perempuan',
         };
     }
 

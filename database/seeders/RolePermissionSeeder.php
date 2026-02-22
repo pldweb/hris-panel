@@ -16,6 +16,7 @@ class RolePermissionSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
+            $superadmin = Role::firstOrCreate(['name' => 'superadmin']);
             $manager = Role::firstOrCreate(['name' => 'manager']);
             $hr = Role::firstOrCreate(['name' => 'hr']);
             $employee = Role::firstOrCreate(['name' => 'employee']);
@@ -30,6 +31,8 @@ class RolePermissionSeeder extends Seeder
                 'profile-menu',
                 'team-view',
             ];
+
+            $superadmin->syncPermissions(Permission::all());
 
             $manager->syncPermissions($this->permissionsAllExcept($employeeSpecific));
 
@@ -102,7 +105,7 @@ class RolePermissionSeeder extends Seeder
             foreach ($prefixes as $prefix) {
                 $q->orWhere('name', 'like', $prefix . '%');
             }
-        })->when(! empty($except), function ($q) use ($except) {
+        })->when(!empty($except), function ($q) use ($except) {
             $q->whereNotIn('name', $except);
         })->get();
     }

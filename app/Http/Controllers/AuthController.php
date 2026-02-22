@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\ResponseHelper;
 use App\Http\Requests\LoginStoreRequest;
+use App\Http\Requests\RegisterStoreRequest;
 use App\Http\Resources\UserResource;
 use App\Interfaces\AuthRepositoryInterface;
 use Illuminate\Http\Request;
@@ -29,6 +30,20 @@ class AuthController extends Controller
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getCode());
         }
     }
+
+    public function register(RegisterStoreRequest $request)
+    {
+        $request = $request->validated();
+
+        try {
+            $user = $this->authRepository->register($request);
+
+            return ResponseHelper::jsonResponse(true, 'Registration Successful', new UserResource($user), 201);
+        } catch (\Exception $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getCode() ?: 500);
+        }
+    }
+
 
     public function me()
     {

@@ -9,6 +9,7 @@ use App\Http\Controllers\OptionController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectTaskController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,7 @@ Route::prefix('v1')
     ->group(function () {
 
         Route::post('login', [AuthController::class, 'login']);
+        Route::post('register', [AuthController::class, 'register']);
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('me', [AuthController::class, 'me']);
@@ -43,6 +45,8 @@ Route::prefix('v1')
             Route::get('projects/statistics', [ProjectController::class, 'getStatistics']);
             Route::get('projects/all/paginated', [ProjectController::class, 'getAllPaginated']);
             Route::apiResource('projects', ProjectController::class);
+
+            Route::apiResource('roles', RoleController::class);
 
             Route::apiResource('project-tasks', ProjectTaskController::class);
             Route::get('project-tasks/all/paginated', [ProjectTaskController::class, 'getAllPaginated']);
@@ -74,6 +78,7 @@ Route::prefix('v1')
             Route::apiResource('payrolls', PayrollController::class)->only(['index', 'show']);
 
             // Options routes
+            Route::get('options/permissions', [RoleController::class, 'getPermissions']);
             Route::get('options/departments', [OptionController::class, 'getDepartments']);
             Route::get('options/employment-types', [OptionController::class, 'getEmploymentTypes']);
             Route::get('options/job-statuses', [OptionController::class, 'getJobStatuses']);

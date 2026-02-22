@@ -16,7 +16,7 @@ class AuthRepository implements AuthRepositoryInterface
         DB::beginTransaction();
 
         try {
-            if (! Auth::guard('web')->attempt($data)) {
+            if (!Auth::guard('web')->attempt($data)) {
                 throw new \Exception('Unauthorized', 401);
             }
 
@@ -33,9 +33,44 @@ class AuthRepository implements AuthRepositoryInterface
         }
     }
 
+    public function register(array $data): User
+    {
+        DB::beginTransaction();
+
+        try {
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+            ]);
+
+            $user->assignRole('employee');
+
+            if (
+                !Auth::guard('web')->attempt([
+                    'email' => $data['email'],
+                    'password' => $data['password']
+                ])
+            ) {
+                throw new \Exception('Unauthorized', 401);
+            }
+
+            $user = Auth::user()->load('roles');
+            $user->token = $user->createToken('auth_token')->plainTextToken;
+
+            DB::commit();
+
+            return $user;
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            throw new \Exception($e->getMessage(), $e->getCode() ?: 500);
+        }
+    }
+
     public function me(): User
     {
-        if (! Auth::check()) {
+        if (!Auth::check()) {
             throw new \Exception('Unauthorized', 401);
         }
 
@@ -50,7 +85,7 @@ class AuthRepository implements AuthRepositoryInterface
 
     public function logout(): User
     {
-        if (! Auth::check()) {
+        if (!Auth::check()) {
             throw new \Exception('Unauthorized', 401);
         }
 
@@ -65,7 +100,7 @@ class AuthRepository implements AuthRepositoryInterface
         DB::beginTransaction();
 
         try {
-            if (! Auth::check()) {
+            if (!Auth::check()) {
                 throw new \Exception('Unauthorized', 401);
             }
 
@@ -75,7 +110,7 @@ class AuthRepository implements AuthRepositoryInterface
                 $user->name = $data['name'];
             }
 
-            if (! empty($data['password'])) {
+            if (!empty($data['password'])) {
                 $user->password = Hash::make($data['password']);
             }
 

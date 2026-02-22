@@ -8,6 +8,10 @@ interface AuthRepositoryInterface
         array $data
     );
 
+    public function register(
+        array $data
+    );
+
     public function me();
 
     public function logout();

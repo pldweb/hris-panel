@@ -59,7 +59,7 @@ class ProjectRepository implements ProjectRepositoryInterface
                 $q->where('project_leader_id', $employeeId);
 
                 // OR show projects where employee's team is assigned
-                if (! empty($teamIds)) {
+                if (!empty($teamIds)) {
                     $q->orWhereHas('teams', function ($teamQuery) use ($teamIds) {
                         $teamQuery->whereIn('teams.id', $teamIds);
                     });
@@ -173,7 +173,7 @@ class ProjectRepository implements ProjectRepositoryInterface
     public function getStatistics(): array
     {
         // Cache key for statistics
-        $cacheKey = CacheConstants::CACHE_KEY_PROJECT_STATISTICS.now()->format('Y-m-d-H');
+        $cacheKey = CacheConstants::CACHE_KEY_PROJECT_STATISTICS . now()->format('Y-m-d-H');
 
         // Cache for 1 hour
         return cache()->remember($cacheKey, CacheConstants::ONE_HOUR, function () {
@@ -222,6 +222,45 @@ class ProjectRepository implements ProjectRepositoryInterface
                 ? round(($taskStats->completed_tasks / $taskStats->total_tasks) * 100)
                 : 0;
 
+            // Monthly project completion trends (last 6 months)
+            $sixMonthsAgo = now()->subMonths(5)->startOfMonth();
+            $monthlyCompletions = Project::selectRaw('YEAR(updated_at) as year, MONTH(updated_at) as month, COUNT(*) as count')
+                ->where('status', 'completed')
+                ->where('updated_at', '>=', $sixMonthsAgo)
+                ->groupBy('year', 'month')
+                ->get()
+                ->keyBy(function ($item) {
+                    return $item->year . '-' . str_pad($item->month, 2, '0', STR_PAD_LEFT);
+                });
+
+            $chartData = [
+                'categories' => [],
+                'series' => [],
+            ];
+
+            for ($i = 5; $i >= 0; $i--) {
+                $date = now()->subMonths($i);
+                $key = $date->format('Y-m');
+
+                $indonesianMonths = [
+                    1 => 'Jan',
+                    2 => 'Feb',
+                    3 => 'Mar',
+                    4 => 'Apr',
+                    5 => 'Mei',
+                    6 => 'Jun',
+                    7 => 'Jul',
+                    8 => 'Agu',
+                    9 => 'Sep',
+                    10 => 'Okt',
+                    11 => 'Nov',
+                    12 => 'Des'
+                ];
+
+                $chartData['categories'][] = $indonesianMonths[(int) $date->format('m')];
+                $chartData['series'][] = isset($monthlyCompletions[$key]) ? $monthlyCompletions[$key]->count : 0;
+            }
+
             return [
                 'total' => $totalProjects,
                 'active' => $activeProjects,
@@ -234,6 +273,7 @@ class ProjectRepository implements ProjectRepositoryInterface
                 'in_progress_tasks' => $taskStats->in_progress_tasks ?? 0,
                 'tasks_this_month' => $taskStats->tasks_this_month ?? 0,
                 'completion_rate' => $completionRate,
+                'chart_data' => $chartData,
             ];
         });
     }
@@ -258,7 +298,7 @@ class ProjectRepository implements ProjectRepositoryInterface
 
     private function clearStatisticsCache(): void
     {
-        $cacheKey = CacheConstants::CACHE_KEY_PROJECT_STATISTICS.now()->format('Y-m-d-H');
+        $cacheKey = CacheConstants::CACHE_KEY_PROJECT_STATISTICS . now()->format('Y-m-d-H');
         cache()->forget($cacheKey);
     }
 }

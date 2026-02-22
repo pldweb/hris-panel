@@ -28,7 +28,8 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
         private JobInformationRepositoryInterface $jobInformationRepository,
         private BankInformationRepositoryInterface $bankInformationRepository,
         private EmergencyContactRepositoryInterface $emergencyContactRepository
-    ) {}
+    ) {
+    }
 
     public function getAll(
         ?string $search,
@@ -378,7 +379,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
     private function updateEmergencyContacts(int $employeeId, array $data): void
     {
         $contacts = $data['emergency_contacts'] ?? null;
-        if (! is_array($contacts) || empty($contacts)) {
+        if (!is_array($contacts) || empty($contacts)) {
             return;
         }
 
@@ -406,7 +407,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
         }
 
         $contactsToDelete = array_diff($existingContactIds, $submittedContactIds);
-        if (! empty($contactsToDelete)) {
+        if (!empty($contactsToDelete)) {
             EmergencyContact::whereIn('id', $contactsToDelete)->delete();
         }
     }
@@ -449,7 +450,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
 
     public function getStatistics(): array
     {
-        $cacheKey = CacheConstants::CACHE_KEY_EMPLOYEE_STATISTICS.now()->format('Y-m-d-H');
+        $cacheKey = CacheConstants::CACHE_KEY_EMPLOYEE_STATISTICS . now()->format('Y-m-d-H');
 
         return cache()->remember($cacheKey, CacheConstants::ONE_HOUR, function () {
             $lastWeekEnd = now()->subWeek()->endOfWeek();
@@ -511,7 +512,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
      */
     private function clearEmployeeStatisticsCache(): void
     {
-        cache()->forget(CacheConstants::CACHE_KEY_EMPLOYEE_STATISTICS.now()->format('Y-m-d-H'));
+        cache()->forget(CacheConstants::CACHE_KEY_EMPLOYEE_STATISTICS . now()->format('Y-m-d-H'));
         cache()->forget(CacheConstants::CACHE_KEY_EMPLOYEE_TOTAL_COUNT);
     }
 
@@ -529,7 +530,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
 
         // Attendance Rate (percentage of days attended this month)
         $workingDaysThisMonth = now()->diffInDaysFiltered(function ($date) {
-            return ! $date->isWeekend();
+            return !$date->isWeekend();
         }, now()->startOfMonth());
 
         $attendanceCount = DB::table('attendances')
@@ -584,11 +585,27 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             ->where('user_id', $userId)
             ->firstOrFail();
 
-        if (! $employee->jobInformation || ! $employee->jobInformation->team) {
-            throw new \Exception('You are not assigned to any team');
+        $teamMember = \App\Models\TeamMember::where('employee_id', $employee->id)
+            ->whereNull('left_at')
+            ->latest('joined_at')
+            ->first();
+
+        if ($teamMember) {
+            $team = \App\Models\Team::with('leader')->find($teamMember->team_id);
+            if ($team) {
+                $team->loadCount('members');
+                return $team;
+            }
         }
 
-        $team = $employee->jobInformation->team;
+        if (!$team && $employee->jobInformation && $employee->jobInformation->team) {
+            $team = $employee->jobInformation->team;
+        }
+
+        if (!$team) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('You are not assigned to any team');
+        }
+
         $team->loadCount('members');
 
         return $team;
@@ -602,11 +619,26 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             ->where('user_id', $userId)
             ->firstOrFail();
 
-        if (! $employee->jobInformation || ! $employee->jobInformation->team) {
-            throw new \Exception('You are not assigned to any team');
+        $team = null;
+
+        $teamMember = \App\Models\TeamMember::where('employee_id', $employee->id)
+            ->whereNull('left_at')
+            ->latest('joined_at')
+            ->first();
+
+        if ($teamMember) {
+            $team = \App\Models\Team::find($teamMember->team_id);
         }
 
-        return $employee->jobInformation->team
+        if (!$team && $employee->jobInformation && $employee->jobInformation->team) {
+            $team = $employee->jobInformation->team;
+        }
+
+        if (!$team) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('You are not assigned to any team');
+        }
+
+        return $team
             ->members()
             ->with([
                 'employee.user',
@@ -624,11 +656,26 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             ->where('user_id', $userId)
             ->firstOrFail();
 
-        if (! $employee->jobInformation || ! $employee->jobInformation->team) {
-            throw new \Exception('You are not assigned to any team');
+        $team = null;
+
+        $teamMember = \App\Models\TeamMember::where('employee_id', $employee->id)
+            ->whereNull('left_at')
+            ->latest('joined_at')
+            ->first();
+
+        if ($teamMember) {
+            $team = \App\Models\Team::find($teamMember->team_id);
         }
 
-        return $employee->jobInformation->team
+        if (!$team && $employee->jobInformation && $employee->jobInformation->team) {
+            $team = $employee->jobInformation->team;
+        }
+
+        if (!$team) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('You are not assigned to any team');
+        }
+
+        return $team
             ->projects()
             ->with(['teams', 'projectLeader.user', 'projectLeader.jobInformation', 'tasks'])
             ->orderBy('created_at', 'desc')
