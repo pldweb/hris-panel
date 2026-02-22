@@ -1,0 +1,84 @@
+# ============================================
+# Stage 1: Composer Dependencies
+# ============================================
+FROM composer:2 AS vendor
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+
+RUN composer install \
+    --no-dev \
+    --no-scripts \
+    --no-autoloader \
+    --prefer-dist \
+    --ignore-platform-reqs
+
+# ============================================
+# Stage 2: Production Image
+# ============================================
+FROM dunglas/frankenphp:php8.4-bookworm
+
+# Set Caddy to serve on port 80 (HTTP)
+ENV SERVER_NAME="http://"
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+
+# Install system dependencies
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    git \
+    unzip \
+    librabbitmq-dev \
+    libpq-dev \
+    supervisor \
+    default-mysql-client \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN install-php-extensions \
+    gd \
+    pcntl \
+    opcache \
+    pdo \
+    pdo_mysql \
+    redis \
+    igbinary \
+    msgpack \
+    zip
+
+WORKDIR /var/www/html
+
+# Copy vendor from composer stage
+COPY --from=vendor /app/vendor ./vendor
+
+# Copy application files
+COPY . .
+
+# Production PHP config
+COPY ./.docker/php/php.prod.ini /usr/local/etc/php/php.ini
+
+# Supervisor config
+COPY ./.docker/etc/supervisor.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Entrypoint script
+COPY ./.docker/php/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Generate optimized autoload
+RUN composer dump-autoload --optimize --no-dev
+
+# Create necessary directories and set permissions
+RUN mkdir -p storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
+EXPOSE 80 443
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

@@ -1,0 +1,90 @@
+# ============================================
+# HRIS API - Production Docker Compose
+# ============================================
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Required: .env file with production values
+# ============================================
+
+services:
+  web:
+    image: ${DOCKER_IMAGE:-ghcr.io/your-org/hris-api}:${DOCKER_TAG:-latest}
+    build:
+      context: ./
+      dockerfile: ./.docker/php/Dockerfile.prod
+    ports:
+      - "${APP_PORT:-8000}:80"
+    env_file:
+      - .env
+    networks:
+      - hris-prod
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mysql:
+    image: mysql/mysql-server:${MYSQL_VERSION:-8.0}
+    ports:
+      - "${FORWARD_DB_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${DB_DATABASE:-hris_api}
+      MYSQL_USER: ${DB_USERNAME:-admin}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret123}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - hris-prod
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-p${DB_ROOT_PASSWORD}" ]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - hris-prod
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      retries: 3
+      timeout: 5s
+    restart: unless-stopped
+
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    ports:
+      - "${FORWARD_MEILISEARCH_PORT:-7700}:7700"
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY:-masterKey123}
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: true
+    volumes:
+      - meilisearch-data:/meili_data
+    networks:
+      - hris-prod
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--spider", "http://localhost:7700/health" ]
+      interval: 15s
+      retries: 3
+      timeout: 5s
+    restart: unless-stopped
+
+networks:
+  hris-prod:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  meilisearch-data:
