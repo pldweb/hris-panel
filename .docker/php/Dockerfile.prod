@@ -1,29 +1,54 @@
 # ============================================
 # Stage 1: Composer Dependencies
 # ============================================
-FROM composer:2 AS vendor
+FROM dunglas/frankenphp:php8.4-bookworm AS vendor
 
 WORKDIR /app
 
+# Install tools for composer
+RUN apt-get update && apt-get install -y git unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions needed by Laravel
+RUN install-php-extensions \
+    gd \
+    pcntl \
+    opcache \
+    pdo \
+    pdo_mysql \
+    redis \
+    igbinary \
+    msgpack \
+    zip
+
+# Copy composer binary
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Copy composer files
 COPY composer.json composer.lock ./
 
+# Prevent Laravel script failure
+RUN cp .env.example .env || true
+
+# Install dependencies
 RUN composer install \
     --no-dev \
     --prefer-dist \
+    --no-interaction \
+    --no-progress \
     --optimize-autoloader \
-    --ignore-platform-reqs
+    --classmap-authoritative
 
 # ============================================
 # Stage 2: Production Image
 # ============================================
 FROM dunglas/frankenphp:php8.4-bookworm
 
-# Set Caddy to serve on port 80 (HTTP)
 ENV SERVER_NAME="http://"
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 
-# Install system dependencies
+# Install system packages
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     git \
@@ -32,10 +57,9 @@ RUN apt-get update \
     libpq-dev \
     supervisor \
     default-mysql-client \
-    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
+# Install PHP extensions (must match stage 1)
 RUN install-php-extensions \
     gd \
     pcntl \
@@ -49,11 +73,11 @@ RUN install-php-extensions \
 
 WORKDIR /var/www/html
 
-# Copy vendor from composer stage
-COPY --from=vendor /app/vendor ./vendor
-
 # Copy application files
 COPY . .
+
+# Copy vendor from builder
+COPY --from=vendor /app/vendor ./vendor
 
 # Production PHP config
 COPY ./.docker/php/php.prod.ini /usr/local/etc/php/php.ini
@@ -61,14 +85,11 @@ COPY ./.docker/php/php.prod.ini /usr/local/etc/php/php.ini
 # Supervisor config
 COPY ./.docker/etc/supervisor.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Entrypoint script
+# Entrypoint
 COPY ./.docker/php/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Generate optimized autoload
-RUN composer dump-autoload --optimize --no-dev
-
-# Create necessary directories and set permissions
+# Create necessary directories & permissions
 RUN mkdir -p storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
