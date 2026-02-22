@@ -31,19 +31,22 @@ sudo usermod -aG docker deploy
 sudo usermod -aG sudo deploy
 ```
 
-### Setup SSH Key Authentication
+### Pastikan SSH Password Login Aktif
 
-Di **komputer lokal** kamu:
+Pastikan VPS kamu mengizinkan login SSH via password:
 
 ```bash
-# Generate SSH key pair (jika belum punya)
-ssh-keygen -t ed25519 -C "hris-deploy" -f ~/.ssh/hris_deploy
+# Di server, cek config SSH
+sudo nano /etc/ssh/sshd_config
 
-# Copy public key ke server
-ssh-copy-id -i ~/.ssh/hris_deploy.pub deploy@YOUR_SERVER_IP
+# Pastikan baris ini ada dan bernilai yes:
+# PasswordAuthentication yes
 
-# Test koneksi
-ssh -i ~/.ssh/hris_deploy deploy@YOUR_SERVER_IP
+# Restart SSH jika ada perubahan
+sudo systemctl restart sshd
+
+# Test login dari komputer lokal
+ssh deploy@YOUR_SERVER_IP
 ```
 
 ### Buat Directory di Server
@@ -108,7 +111,7 @@ Untuk **SETIAP repository** (hris-api-main dan hris-fe-main), set secrets di:
 |---|---|---|
 | `SERVER_HOST` | IP address VPS | `103.xxx.xxx.xxx` |
 | `SERVER_USER` | SSH username | `deploy` |
-| `SERVER_SSH_KEY` | Private key SSH (isi file `~/.ssh/hris_deploy`) | `-----BEGIN OPENSSH PRIVATE KEY----- ...` |
+| `SERVER_PASSWORD` | SSH password user | `password_kamu` |
 | `SERVER_PORT` | SSH port | `22` |
 
 ### Secrets tambahan BACKEND
@@ -263,8 +266,8 @@ sudo systemctl restart caddy
 
 - [ ] VPS sudah ready dengan Docker & Docker Compose
 - [ ] User `deploy` sudah dibuat dengan akses Docker
-- [ ] SSH key pair sudah di-generate
-- [ ] GitHub Secrets sudah diset di kedua repository
+- [ ] SSH password login aktif di server
+- [ ] GitHub Secrets sudah diset di kedua repository (termasuk `SERVER_PASSWORD`)
 - [ ] `.env` production sudah dibuat di server (`~/hris-api/.env`)
 - [ ] Nama Docker image di `docker-compose.prod.yml` sudah disesuaikan
 - [ ] GHCR login sudah dilakukan di server

@@ -9,7 +9,7 @@
 
 services:
   web:
-    image: ${DOCKER_IMAGE:-ghcr.io/your-org/hris-api}:${DOCKER_TAG:-latest}
+    image: ${DOCKER_IMAGE:-ghcr.io/pldweb/hris-panel}:${DOCKER_TAG:-latest}
     build:
       context: ./
       dockerfile: ./.docker/php/Dockerfile.prod
