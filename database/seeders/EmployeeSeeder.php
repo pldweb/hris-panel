@@ -16,7 +16,7 @@ class EmployeeSeeder extends Seeder
             'name' => 'Employee',
             'email' => 'employee@gmail.com',
             'password' => bcrypt('password'),
-            'profile_photo' => 'profile-pictures/male/2.avif',
+            'profile_photo' => 'profile-pictures/laki-laki/2.avif',
         ]);
 
         $employeeProfile = $employee->employeeProfile()->create([
@@ -24,7 +24,7 @@ class EmployeeSeeder extends Seeder
             'identity_number' => '1234567890',
             'phone' => '085325483259',
             'date_of_birth' => '2000-01-01',
-            'gender' => 'male',
+            'gender' => 'laki-laki',
             'place_of_birth' => 'Jakarta',
             'address' => 'Jl. Sudirman No. 1',
             'city' => 'Jakarta',

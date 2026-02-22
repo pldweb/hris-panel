@@ -16,7 +16,7 @@ class ManagerSeeder extends Seeder
             'name' => 'Manager',
             'email' => 'manager@gmail.com',
             'password' => bcrypt('password'),
-            'profile_photo' => 'profile-pictures/male/1.avif',
+            'profile_photo' => 'profile-pictures/laki-laki/1.avif',
         ]);
 
         $manager->assignRole('manager');

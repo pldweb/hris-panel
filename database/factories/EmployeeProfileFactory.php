@@ -17,7 +17,7 @@ class EmployeeProfileFactory extends Factory
      */
     public function definition(): array
     {
-        $gender = fake()->randomElement(['male', 'female']);
+        $gender = fake()->randomElement(['laki-laki', 'perempuan']);
         $dateOfBirth = fake()->dateTimeBetween('-55 years', '-22 years');
 
         // Create user with matching profile picture
@@ -112,14 +112,14 @@ class EmployeeProfileFactory extends Factory
     }
 
     /**
-     * Indicate that the employee is male.
+     * Indicate that the employee is laki-laki.
      */
-    public function male(): static
+    public function laki-laki(): static
     {
-        $profilePicture = $this->getProfilePictureByGender('male');
+        $profilePicture = $this->getProfilePictureByGender('laki-laki');
 
         return $this->state(fn(array $attributes) => [
-            'gender' => 'male',
+            'gender' => 'laki-laki',
             'user_id' => User::factory()->state([
                 'profile_photo' => $profilePicture,
             ])->afterCreating(function (User $user) {
@@ -129,14 +129,14 @@ class EmployeeProfileFactory extends Factory
     }
 
     /**
-     * Indicate that the employee is female.
+     * Indicate that the employee is perempuan.
      */
-    public function female(): static
+    public function perempuan(): static
     {
-        $profilePicture = $this->getProfilePictureByGender('female');
+        $profilePicture = $this->getProfilePictureByGender('perempuan');
 
         return $this->state(fn(array $attributes) => [
-            'gender' => 'female',
+            'gender' => 'perempuan',
             'user_id' => User::factory()->state([
                 'profile_photo' => $profilePicture,
             ])->afterCreating(function (User $user) {

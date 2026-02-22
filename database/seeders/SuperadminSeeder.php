@@ -20,7 +20,7 @@ class SuperadminSeeder extends Seeder
         ], [
             'name' => 'Superadmin',
             'password' => Hash::make('password'),
-            'profile_photo' => 'profile-pictures/male/3.avif',
+            'profile_photo' => 'profile-pictures/laki-laki/3.avif',
         ]);
 
         if (!$superadmin->hasRole('superadmin')) {
@@ -33,7 +33,7 @@ class SuperadminSeeder extends Seeder
                 'identity_number' => '9999999999',
                 'phone' => '080000000000',
                 'date_of_birth' => '1990-01-01',
-                'gender' => 'male',
+                'gender' => 'laki-laki',
                 'place_of_birth' => 'Admin City',
                 'address' => 'Superadmin HQ',
                 'city' => 'Jakarta',
